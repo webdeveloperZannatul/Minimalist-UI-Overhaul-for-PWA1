@@ -1,0 +1,796 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IronSlate - Minimalist Weight Training PWA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            primary: '#2D3748', // Dark Slate (Iron)
+                            secondary: '#F6AD55', // Orange Accent
+                            accent: '#ED8936', // Darker Orange
+                            bg: '#F7FAFC', // Light Neutral
+                            surface: '#FFFFFF',
+                            text: '#1A202C',
+                            muted: '#718096',
+                            border: '#E2E8F0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px -1px rgba(0, 0, 0, 0.02)',
+                        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+                    },
+                    borderRadius: {
+                        'lg': '12px',
+                        'xl': '16px',
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E0;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A0AEC0;
+        }
+
+        /* PWA UI Polish */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Mobile Nav Active Indicator */
+        .nav-item.active {
+            color: #ED8936;
+        }
+        .nav-item.active svg {
+            fill: #ED8936;
+        }
+
+        /* Workout Progress Ring */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        .screen.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Tap Feedback */
+        button, .tap-target {
+            -webkit-tap-highlight-color: transparent;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+
+        /* Hero Background Pattern */
+        .hero-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232D3748' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="font-sans bg-brand-bg text-brand-text antialiased overflow-hidden h-screen flex flex-col">
+
+    <!-- APP CONTAINER (Simulates PWA Viewport) -->
+    <div id="app" class="flex-1 flex flex-col relative max-w-md mx-auto w-full bg-white shadow-2xl overflow-hidden border-x border-brand-border sm:border-x-0">
+
+        <!-- HEADER -->
+        <header class="glass-panel fixed top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between border-b border-brand-border h-16">
+            <div class="flex items-center gap-2">
+                <img src="https://i.postimg.cc/htG6fVWH/logo.png" alt="IronSlate Logo" class="h-8 w-8 rounded object-contain">
+                <span class="font-bold text-lg tracking-tight">IronSlate</span>
+            </div>
+            <button class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <svg class="w-6 h-6 text-brand-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                </svg>
+            </button>
+        </header>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto pt-20 pb-24 scroll-smooth" id="main-content">
+            <img style="height:20px; width:60px;" src="https://i.postimg.cc/htG6fVWH/logo.png" >
+            
+            <!-- SCREEN 1: DASHBOARD (LANDING) -->
+            <div id="screen-dashboard" class="screen active p-4 space-y-6">
+                <!-- Hero / Welcome -->
+                <section class="relative rounded-2xl overflow-hidden bg-brand-primary text-white p-6 hero-pattern shadow-card">
+                    <div class="relative z-10">
+                        <h1 class="text-xl font-semibold mb-1">Good Morning, Alex</h1>
+                        <p class="text-brand-secondary text-sm font-medium mb-4">Ready to crush your leg day?</p>
+                        <div class="flex gap-3">
+                            <button onclick="switchScreen('screen-workout')" class="bg-brand-secondary hover:bg-brand-accent text-white font-semibold py-2.5 px-5 rounded-lg shadow-soft transition-all flex-1 text-center">
+                                Start Workout
+                            </button>
+                            <button onclick="switchScreen('screen-library')" class="bg-white/10 hover:bg-white/20 backdrop-blur text-white font-medium py-2.5 px-4 rounded-lg transition-all">
+                                Browse
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Decorative abstract shape -->
+                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-brand-secondary opacity-20 rounded-full blur-2xl"></div>
+                </section>
+
+                <!-- Weekly Progress -->
+                <section>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-base font-semibold text-brand-text">Weekly Progress</h2>
+                        <span class="text-xs text-brand-muted font-medium cursor-pointer">View All</span>
+                    </div>
+                    <div class="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x">
+                        <!-- Card 1 -->
+                        <div class="min-w-[140px] bg-white p-4 rounded-xl border border-brand-border shadow-card snap-center">
+                            <div class="text-xs text-brand-muted uppercase tracking-wide mb-1">Sessions</div>
+                            <div class="text-2xl font-bold text-brand-primary">4 <span class="text-sm font-normal text-brand-muted">/ 5</span></div>
+                            <div class="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div class="h-full w-[80%] bg-brand-secondary rounded-full"></div>
+                            </div>
+                        </div>
+                        <!-- Card 2 -->
+                        <div class="min-w-[140px] bg-white p-4 rounded-xl border border-brand-border shadow-card snap-center">
+                            <div class="text-xs text-brand-muted uppercase tracking-wide mb-1">Volume</div>
+                            <div class="text-2xl font-bold text-brand-primary">12.5k</div>
+                            <div class="text-xs text-green-600 font-medium mt-1">+5% vs last week</div>
+                        </div>
+                        <!-- Card 3 -->
+                        <div class="min-w-[140px] bg-white p-4 rounded-xl border border-brand-border shadow-card snap-center">
+                            <div class="text-xs text-brand-muted uppercase tracking-wide mb-1">Streak</div>
+                            <div class="text-2xl font-bold text-brand-primary">12 <span class="text-sm font-normal">days</span></div>
+                            <div class="flex text-brand-secondary mt-1">🔥🔥🔥</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Recent Workouts -->
+                <section>
+                    <h2 class="text-base font-semibold text-brand-text mb-3">Recent Workouts</h2>
+                    <div class="space-y-3">
+                        <div class="bg-white p-4 rounded-xl border border-brand-border shadow-card flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center text-brand-accent">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-brand-text">Push Day</div>
+                                <div class="text-xs text-brand-muted">Mon, 8:30 AM • 45 min</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-semibold text-brand-secondary">Finished</div>
+                                <div class="text-xs text-brand-muted">12 sets</div>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-brand-border shadow-card flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                            </div>
+                            <div class="flex-1">
+                                <div class="font-medium text-brand-text">Pull Day</div>
+                                <div class="text-xs text-brand-muted">Sat, 10:00 AM • 50 min</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-semibold text-brand-secondary">Finished</div>
+                                <div class="text-xs text-brand-muted">14 sets</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- SCREEN 2: WORKOUT SESSION -->
+            <div id="screen-workout" class="screen h-full flex flex-col">
+                <!-- Workout Header -->
+                <div class="bg-white p-4 border-b border-brand-border sticky top-0 z-20">
+                    <div class="flex justify-between items-center mb-2">
+                        <div>
+                            <div class="text-xs text-brand-muted uppercase tracking-wide">Leg Day</div>
+                            <h2 class="text-xl font-bold text-brand-primary">Hypertrophy Focus</h2>
+                        </div>
+                        <button onclick="stopWorkout()" class="text-red-500 text-sm font-medium px-3 py-1 border border-red-200 rounded-lg hover:bg-red-50">End</button>
+                    </div>
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div id="workout-progress" class="bg-brand-secondary h-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                    <div class="flex justify-between mt-1 text-xs text-brand-muted">
+                        <span id="current-exercise-count">Exercise 1 of 5</span>
+                        <span id="total-sets-count">0 / 18 Sets</span>
+                    </div>
+                </div>
+
+                <!-- Exercise Carousel/View -->
+                <div class="flex-1 overflow-y-auto p-4 space-y-6" id="workout-viewport">
+                    
+                    <!-- Exercise Card Template (Dynamically populated in JS) -->
+                    <div id="exercise-container" class="space-y-4">
+                        <!-- Dynamic Content Here -->
+                    </div>
+
+                    <!-- Rest Timer Overlay (Hidden by default) -->
+                    <div id="rest-timer" class="hidden fixed inset-0 bg-white/95 backdrop-blur z-50 flex flex-col items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-sm text-brand-muted uppercase tracking-widest mb-2">Rest Timer</div>
+                            <div class="text-6xl font-bold text-brand-primary tabular-nums" id="timer-display">01:30</div>
+                            <div class="mt-8 flex gap-3">
+                                <button onclick="skipRest()" class="px-6 py-2 border border-brand-border rounded-lg text-brand-text font-medium">Skip</button>
+                                <button onclick="addTime(30)" class="px-6 py-2 bg-brand-bg rounded-lg text-brand-text font-medium">+30s</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Workout Controls -->
+                <div class="bg-white p-4 border-t border-brand-border sticky bottom-0 z-20">
+                    <div class="flex gap-3">
+                        <button onclick="prevExercise()" class="flex-1 py-3 border border-brand-border rounded-xl text-brand-text font-medium bg-white">Back</button>
+                        <button onclick="addSet()" class="flex-[2] py-3 bg-brand-primary text-white rounded-xl font-semibold shadow-soft active:scale-95 transition-transform">Log Set</button>
+                        <button onclick="nextExercise()" class="flex-1 py-3 bg-brand-bg text-brand-text rounded-xl font-medium">Next</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCREEN 3: EXERCISE LIBRARY -->
+            <div id="screen-library" class="screen p-4 space-y-4">
+                <!-- Search -->
+                <div class="relative">
+                    <input type="text" placeholder="Search exercises..." class="w-full pl-10 pr-4 py-3 bg-white border border-brand-border rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-secondary focus:border-transparent transition-all">
+                    <svg class="w-5 h-5 text-brand-muted absolute left-3 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
+                    <button class="px-4 py-2 bg-brand-primary text-white rounded-full text-sm font-medium whitespace-nowrap shadow-soft">All</button>
+                    <button class="px-4 py-2 bg-white border border-brand-border text-brand-text rounded-full text-sm font-medium whitespace-nowrap hover:bg-gray-50">Chest</button>
+                    <button class="px-4 py-2 bg-white border border-brand-border text-brand-text rounded-full text-sm font-medium whitespace-nowrap hover:bg-gray-50">Back</button>
+                    <button class="px-4 py-2 bg-white border border-brand-border text-brand-text rounded-full text-sm font-medium whitespace-nowrap hover:bg-gray-50">Legs</button>
+                    <button class="px-4 py-2 bg-white border border-brand-border text-brand-text rounded-full text-sm font-medium whitespace-nowrap hover:bg-gray-50">Shoulders</button>
+                </div>
+
+                <!-- Exercise Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Item 1 -->
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card group">
+                        <div class="h-24 bg-gray-100 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Bench Press" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-brand-text text-sm">Barbell Bench Press</h3>
+                            <div class="text-xs text-brand-muted mt-1">Chest • Triceps</div>
+                            <button class="mt-2 w-full py-1.5 text-xs font-medium text-brand-secondary border border-brand-secondary rounded-md hover:bg-orange-50 transition-colors">Add to Workout</button>
+                        </div>
+                    </div>
+                    <!-- Item 2 -->
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card group">
+                        <div class="h-24 bg-gray-100 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Squat" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-brand-text text-sm">Barbell Squat</h3>
+                            <div class="text-xs text-brand-muted mt-1">Legs • Glutes</div>
+                            <button class="mt-2 w-full py-1.5 text-xs font-medium text-brand-secondary border border-brand-secondary rounded-md hover:bg-orange-50 transition-colors">Add to Workout</button>
+                        </div>
+                    </div>
+                    <!-- Item 3 -->
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card group">
+                        <div class="h-24 bg-gray-100 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="Deadlift" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-brand-text text-sm">Deadlift</h3>
+                            <div class="text-xs text-brand-muted mt-1">Back • Legs</div>
+                            <button class="mt-2 w-full py-1.5 text-xs font-medium text-brand-secondary border border-brand-secondary rounded-md hover:bg-orange-50 transition-colors">Add to Workout</button>
+                        </div>
+                    </div>
+                    <!-- Item 4 -->
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card group">
+                        <div class="h-24 bg-gray-100 relative overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" alt="OHP" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                        </div>
+                        <div class="p-3">
+                            <h3 class="font-semibold text-brand-text text-sm">Overhead Press</h3>
+                            <div class="text-xs text-brand-muted mt-1">Shoulders • Core</div>
+                            <button class="mt-2 w-full py-1.5 text-xs font-medium text-brand-secondary border border-brand-secondary rounded-md hover:bg-orange-50 transition-colors">Add to Workout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCREEN 4: PROGRESS -->
+            <div id="screen-progress" class="screen p-4 space-y-6">
+                <h1 class="text-xl font-bold text-brand-primary">Progress Tracking</h1>
+                
+                <!-- Main Stat -->
+                <div class="bg-white p-6 rounded-2xl border border-brand-border shadow-card text-center">
+                    <div class="relative inline-block">
+                        <svg class="w-32 h-32 transform -rotate-90">
+                            <circle cx="64" cy="64" r="56" stroke="#E2E8F0" stroke-width="8" fill="none"></circle>
+                            <circle cx="64" cy="64" r="56" stroke="#ED8936" stroke-width="8" fill="none" stroke-dasharray="351.86" stroke-dashoffset="87.96" class="progress-ring__circle"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-2xl font-bold text-brand-primary">75%</span>
+                            <span class="text-xs text-brand-muted">Goal</span>
+                        </div>
+                    </div>
+                    <h3 class="mt-4 font-semibold">Monthly Strength Goal</h3>
+                    <p class="text-sm text-brand-muted">Target: 100kg Total Volume</p>
+                </div>
+
+                <!-- Charts / Analytics -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-white p-4 rounded-xl border border-brand-border shadow-card">
+                        <div class="text-xs text-brand-muted uppercase">Volume</div>
+                        <div class="text-lg font-bold text-brand-text">12.4k</div>
+                        <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full w-[72%] bg-brand-primary rounded-full"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl border border-brand-border shadow-card">
+                        <div class="text-xs text-brand-muted uppercase">Consistency</div>
+                        <div class="text-lg font-bold text-brand-text">88%</div>
+                        <div class="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div class="h-full w-[88%] bg-brand-secondary rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History List -->
+                <div>
+                    <h2 class="font-semibold mb-3">History</h2>
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden">
+                        <div class="p-4 border-b border-brand-border flex justify-between items-center">
+                            <div>
+                                <div class="font-medium text-sm">Deadlift PR</div>
+                                <div class="text-xs text-brand-muted">Today, 9:15 AM</div>
+                            </div>
+                            <span class="font-bold text-brand-secondary">140kg</span>
+                        </div>
+                        <div class="p-4 border-b border-brand-border flex justify-between items-center">
+                            <div>
+                                <div class="font-medium text-sm">Bench Press</div>
+                                <div class="text-xs text-brand-muted">Yesterday, 8:00 AM</div>
+                            </div>
+                            <span class="font-bold text-brand-text">100kg</span>
+                        </div>
+                        <div class="p-4 flex justify-between items-center">
+                            <div>
+                                <div class="font-medium text-sm">Squat</div>
+                                <div class="text-xs text-brand-muted">2 days ago</div>
+                            </div>
+                            <span class="font-bold text-brand-text">120kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SCREEN 5: PROFILE & SETTINGS -->
+            <div id="screen-profile" class="screen p-4 space-y-6">
+                <!-- User Header -->
+                <div class="flex items-center gap-4 bg-white p-4 rounded-xl border border-brand-border shadow-card">
+                    <div class="w-12 h-12 rounded-full bg-brand-primary text-white flex items-center justify-center text-xl font-bold">A</div>
+                    <div>
+                        <h2 class="font-bold text-lg">Alex Morgan</h2>
+                        <p class="text-sm text-brand-muted">Pro Member since 2023</p>
+                    </div>
+                </div>
+
+                <!-- Settings Group -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-bold text-brand-muted uppercase tracking-wide px-1">Preferences</h3>
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card">
+                        <div class="p-4 flex items-center justify-between border-b border-brand-border cursor-pointer">
+                            <span class="font-medium">Units</span>
+                            <span class="text-brand-secondary text-sm font-medium">Kilograms</span>
+                        </div>
+                        <div class="p-4 flex items-center justify-between border-b border-brand-border cursor-pointer">
+                            <span class="font-medium">Sound Effects</span>
+                            <div class="w-10 h-6 bg-brand-bg rounded-full relative">
+                                <div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                            </div>
+                        </div>
+                        <div class="p-4 flex items-center justify-between cursor-pointer">
+                            <span class="font-medium">Dark Mode</span>
+                            <div class="w-10 h-6 bg-brand-bg rounded-full relative">
+                                <div class="absolute right-1 top-1 w-4 h-4 bg-white rounded-full shadow-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Support Group -->
+                <div class="space-y-2">
+                    <h3 class="text-xs font-bold text-brand-muted uppercase tracking-wide px-1">Support</h3>
+                    <div class="bg-white rounded-xl border border-brand-border overflow-hidden shadow-card">
+                        <div class="p-4 flex items-center justify-between border-b border-brand-border cursor-pointer">
+                            <span class="font-medium">Contact Us</span>
+                            <svg class="w-4 h-4 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                        <div class="p-4 flex items-center justify-between cursor-pointer">
+                            <span class="font-medium">Privacy Policy</span>
+                            <svg class="w-4 h-4 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PWA Install Prompt (Mock) -->
+                <div class="bg-brand-primary text-white p-4 rounded-xl shadow-card flex items-center gap-3">
+                    <div class="bg-white/10 p-2 rounded-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-semibold text-sm">Install IronSlate</div>
+                        <div class="text-xs text-gray-300">Add to home screen for offline access</div>
+                    </div>
+                    <button class="bg-brand-secondary text-white text-xs font-bold px-3 py-1.5 rounded-md">Install</button>
+                </div>
+            </div>
+
+            <!-- SCREEN 6: LANDING PAGE (EXTERNAL WEBSITE SIMULATION) -->
+            <div id="screen-home" class="screen">
+                <!-- Full Hero -->
+                <div class="relative h-64 bg-brand-primary flex items-center justify-center overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" alt="Gym" class="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay">
+                    <div class="relative z-10 text-center text-white px-6">
+                        <img src="https://i.postimg.cc/htG6fVWH/logo.png" class="h-12 w-16 mx-auto mb-4 dimension-full bg-white p-1">
+                        <!-- <img src="https://i.postimg.cc/htG6fVWH/logo.png" class="h-12 w-12 mx-auto mb-4 rounded-full bg-white p-1"> -->
+                        <h1 class="text-3xl font-bold tracking-tight">IRONSLATE</h1>
+                        <p class="text-brand-secondary text-sm tracking-widest uppercase mt-1">Strength Training PWA</p>
+                    </div>
+                </div>
+
+                <!-- Content Sections -->
+                <div class="p-4 space-y-8 -mt-8 relative z-20 bg-brand-bg rounded-t-3xl">
+                    
+                    <!-- How It Works (Click to show image) -->
+                    <section class="bg-white p-5 rounded-xl shadow-card border border-brand-border">
+                        <h2 class="text-lg font-bold mb-3 text-brand-primary">How It Works</h2>
+                        <p class="text-brand-muted text-sm mb-4">Track your progressive overload with ease. No distractions, just iron.</p>
+                        <button onclick="showModal('https://i.postimg.cc/jd8RjzkP/See-How-it-Works.png')" class="w-full py-3 bg-brand-bg text-brand-primary font-semibold rounded-lg border border-brand-border">See How It Works</button>
+                    </section>
+
+                    <!-- Get Started -->
+                    <section class="bg-brand-primary p-5 rounded-xl shadow-card text-white">
+                        <h2 class="text-lg font-bold mb-2">Ready to Slate?</h2>
+                        <p class="text-gray-300 text-sm mb-4">Join 10,000+ lifters tracking their strength.</p>
+                        <button onclick="showModal('https://i.postimg.cc/tCnB1bBN/Get-Started.png'); switchScreen('screen-dashboard')" class="w-full py-3 bg-brand-secondary text-white font-bold rounded-lg shadow-soft">Get Started Free</button>
+                    </section>
+
+                    <!-- Client Info / Contact Map -->
+                    <section class="bg-white p-0 rounded-xl overflow-hidden shadow-card border border-brand-border">
+                        <div class="p-5 border-b border-brand-border">
+                            <h2 class="text-lg font-bold text-brand-primary">Contact Us</h2>
+                            <p class="text-sm text-brand-muted">Need support or custom plans?</p>
+                        </div>
+                        <!-- Mock Map -->
+                        <div class="h-40 bg-gray-200 relative">
+                            <img src="https://i.postimg.cc/8k9jymwL/www-ironslate-co-uk.png" class="w-full h-full object-cover opacity-90" alt="Map Location">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="bg-white p-2 rounded shadow-lg">
+                                    <div class="text-xs font-bold text-brand-primary">IronSlate HQ</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-2">
+                            <a href="www.ironslate.co.uk" class="block text-sm text-brand-secondary font-medium hover:underline">www.ironslate.co.uk</a>
+                            <a href="mailto:contact@ironslate.co.uk" class="block text-sm text-brand-text">contact@ironslate.co.uk</a>
+                            <div class="text-xs text-brand-muted pt-2">© 2026 IronSlate. All rights reserved developed By Zannatul.</div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- MODAL (For Images) -->
+        <div id="modal" class="fixed inset-0 bg-black/80 z-[100] hidden items-center justify-center p-4" onclick="closeModal()">
+            <img id="modal-img" src="" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
+        </div>
+
+        <!-- BOTTOM NAVIGATION -->
+        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-brand-border px-6 py-2 max-w-md mx-auto w-full z-50">
+            <div class="flex justify-between items-center h-16">
+                
+                <!-- Home / Landing (Client Website) -->
+                <button onclick="switchScreen('screen-home')" class="nav-item flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors" id="nav-home">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    <span class="text-[10px] font-medium">Home</span>
+                </button>
+
+                <!-- Dashboard -->
+                <button onclick="switchScreen('screen-dashboard')" class="nav-item flex flex-col items-center gap-1 text-brand-primary transition-colors" id="nav-dashboard">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    <span class="text-[10px] font-medium">Dashboard</span>
+                </button>
+
+                <!-- Workouts (Screen 2 & 3 Grouped) -->
+                <button onclick="switchScreen('screen-library')" class="nav-item flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors" id="nav-workouts">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    <span class="text-[10px] font-medium">Exercises</span>
+                </button>
+
+                <!-- Progress -->
+                <button onclick="switchScreen('screen-progress')" class="nav-item flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors" id="nav-progress">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                    <span class="text-[10px] font-medium">Progress</span>
+                </button>
+
+                <!-- Profile -->
+                <button onclick="switchScreen('screen-profile')" class="nav-item flex flex-col items-center gap-1 text-gray-400 hover:text-brand-primary transition-colors" id="nav-profile">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    <span class="text-[10px] font-medium">Profile</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        // --- STATE MANAGEMENT ---
+        const state = {
+            currentScreen: 'screen-home',
+            workout: {
+                exercises: [
+                    { name: 'Barbell Squat', sets: [], target: [5, 100], rpe: 8 },
+                    { name: 'Leg Press', sets: [], target: [3, 120], rpe: 7 },
+                    { name: 'Walking Lunges', sets: [], target: [3, 20], rpe: 9 },
+                    { name: 'Leg Extension', sets: [], target: [3, 60], rpe: 10 },
+                    { name: 'Calf Raises', sets: [], target: [4, 80], rpe: 10 }
+                ],
+                currentExerciseIndex: 0,
+                totalSets: 18,
+                completedSets: 0,
+                startTime: null
+            },
+            timer: {
+                interval: null,
+                timeLeft: 90,
+                defaultTime: 90
+            }
+        };
+
+        // --- NAVIGATION & UI LOGIC ---
+        function switchScreen(screenId) {
+            // Hide all screens
+            document.querySelectorAll('.screen').forEach(el => {
+                el.classList.remove('active');
+                // Small timeout to allow display:none to apply before opacity transition
+                setTimeout(() => {
+                    if (!el.classList.contains('active')) el.style.display = 'none';
+                }, 300);
+            });
+            
+            // Update Nav State
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'text-brand-primary', 'text-brand-secondary'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.add('text-gray-400'));
+
+            // Show target screen
+            const target = document.getElementById(screenId);
+            if(target) {
+                target.style.display = 'block';
+                // Force reflow
+                void target.offsetWidth; 
+                target.classList.add('active');
+            }
+
+            // Update Nav Icons
+            const navMap = {
+                'screen-home': 'nav-home',
+                'screen-dashboard': 'nav-dashboard',
+                'screen-workout': 'nav-workouts', // Workout mapped to exercise icon
+                'screen-library': 'nav-workouts',
+                'screen-progress': 'nav-progress',
+                'screen-profile': 'nav-profile'
+            };
+
+            const activeNavId = navMap[screenId];
+            if(activeNavId) {
+                const navEl = document.getElementById(activeNavId);
+                if(navEl) {
+                    navEl.classList.add('active', 'text-brand-primary');
+                    navEl.classList.remove('text-gray-400');
+                }
+            }
+
+            // Special logic for workout screen
+            if (screenId === 'screen-workout') {
+                startWorkoutSession();
+            }
+
+            state.currentScreen = screenId;
+        }
+
+        // --- WORKOUT LOGIC ---
+
+        function startWorkoutSession() {
+            // Reset if needed or just render
+            if (!state.workout.startTime) {
+                state.workout.startTime = new Date();
+                state.workout.completedSets = 0;
+                state.workout.currentExerciseIndex = 0;
+                state.workout.exercises.forEach(ex => ex.sets = []);
+            }
+            renderWorkoutView();
+        }
+
+        function renderWorkoutView() {
+            const container = document.getElementById('exercise-container');
+            const currentEx = state.workout.exercises[state.workout.currentExerciseIndex];
+            const progress = ((state.workout.currentExerciseIndex) / state.workout.exercises.length) * 100;
+            
+            // Update Header Info
+            document.getElementById('current-exercise-count').innerText = `Exercise ${state.workout.currentExerciseIndex + 1} of ${state.workout.exercises.length}`;
+            document.getElementById('total-sets-count').innerText = `${state.workout.completedSets} / ${state.workout.totalSets} Sets`;
+            document.getElementById('workout-progress').style.width = `${progress}%`;
+
+            // Render Exercise Card
+            const setsHtml = currentEx.sets.map((s, i) => `
+                <div class="flex items-center justify-between p-3 bg-brand-bg rounded-lg text-sm">
+                    <span class="font-medium text-brand-muted">Set ${i + 1}</span>
+                    <span class="font-bold text-brand-primary">${s.weight}kg x ${s.reps}</span>
+                    <span class="text-xs text-green-600 font-medium">Done</span>
+                </div>
+            `).join('');
+
+            const isLastSet = currentEx.sets.length >= currentEx.target[0]; // Simple logic: target sets met
+
+            container.innerHTML = `
+                <div class="bg-white rounded-2xl border border-brand-border shadow-card p-5 transform transition-all">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-brand-primary">${currentEx.name}</h2>
+                            <div class="text-sm text-brand-muted">Target: ${currentEx.target[0]} sets @ ${currentEx.target[1]}kg</div>
+                        </div>
+                        <div class="bg-orange-50 text-brand-accent px-2 py-1 rounded text-xs font-bold">RPE ${currentEx.rpe}</div>
+                    </div>
+
+                    <!-- Input Area (Simulated) -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div class="bg-gray-50 p-3 rounded-lg border border-brand-border">
+                            <div class="text-xs text-brand-muted uppercase mb-1">Weight (kg)</div>
+                            <input type="number" id="inp-weight" value="${currentEx.target[1]}" class="w-full bg-transparent font-bold text-lg focus:outline-none text-brand-text">
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-lg border border-brand-border">
+                            <div class="text-xs text-brand-muted uppercase mb-1">Reps</div>
+                            <input type="number" id="inp-reps" value="${currentEx.target[1] === 20 ? 20 : 12}" class="w-full bg-transparent font-bold text-lg focus:outline-none text-brand-text"> <!-- Default rep logic -->
+                        </div>
+                    </div>
+
+                    <!-- Completed Sets List -->
+                    <div class="space-y-2 min-h-[50px]">
+                        ${setsHtml.length ? setsHtml : '<div class="text-center text-xs text-brand-muted py-2">Waiting for first set...</div>'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function addSet() {
+            const weight = document.getElementById('inp-weight').value;
+            const reps = document.getElementById('inp-reps').value;
+            
+            if(!weight || !reps) return;
+
+            const currentEx = state.workout.exercises[state.workout.currentExerciseIndex];
+            currentEx.sets.push({ weight, reps });
+            state.workout.completedSets++;
+
+            // Trigger UI Update
+            renderWorkoutView();
+
+            // Auto-start rest timer
+            startRestTimer();
+        }
+
+        function nextExercise() {
+            if (state.workout.currentExerciseIndex < state.workout.exercises.length - 1) {
+                state.workout.currentExerciseIndex++;
+                renderWorkoutView();
+            } else {
+                // Workout Complete
+                alert("Workout Complete! Great job.");
+                stopWorkout();
+            }
+        }
+
+        function prevExercise() {
+            if (state.workout.currentExerciseIndex > 0) {
+                state.workout.currentExerciseIndex--;
+                renderWorkoutView();
+            }
+        }
+
+        function stopWorkout() {
+            state.workout.startTime = null;
+            state.workout.completedSets = 0;
+            state.workout.currentExerciseIndex = 0;
+            state.workout.exercises.forEach(ex => ex.sets = []);
+            clearInterval(state.timer.interval);
+            switchScreen('screen-dashboard');
+        }
+
+        // --- TIMER LOGIC ---
+
+        function startRestTimer() {
+            const modal = document.getElementById('rest-timer');
+            const display = document.getElementById('timer-display');
+            
+            modal.classList.remove('hidden');
+            state.timer.timeLeft = state.timer.defaultTime;
+
+            clearInterval(state.timer.interval);
+            state.timer.interval = setInterval(() => {
+                state.timer.timeLeft--;
+                
+                const m = Math.floor(state.timer.timeLeft / 60).toString().padStart(2, '0');
+                const s = (state.timer.timeLeft % 60).toString().padStart(2, '0');
+                display.innerText = `${m}:${s}`;
+
+                if (state.timer.timeLeft <= 0) {
+                    skipRest();
+                    // Optional: play sound
+                }
+            }, 1000);
+        }
+
+        function skipRest() {
+            clearInterval(state.timer.interval);
+            document.getElementById('rest-timer').classList.add('hidden');
+        }
+
+        function addTime(seconds) {
+            state.timer.timeLeft += seconds;
+        }
+
+        // --- EXTERNAL / MODAL LOGIC ---
+        function showModal(imgSrc) {
+            const modal = document.getElementById('modal');
+            const img = document.getElementById('modal-img');
+            img.src = imgSrc;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set default screen to Home/Landing
+            switchScreen('screen-home');
+        });
+
+    </script>
+</body>
+</html>

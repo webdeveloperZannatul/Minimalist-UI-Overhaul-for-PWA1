@@ -1,0 +1,4 @@
+<svg class="w-32 h-32 transform -rotate-90" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="64" cy="64" r="56" stroke="#E2E8F0" stroke-width="8" fill="none"></circle>
+                            <circle cx="64" cy="64" r="56" stroke="#ED8936" stroke-width="8" fill="none" stroke-dasharray="351.86" stroke-dashoffset="87.96" class="progress-ring__circle"></circle>
+                        </svg>
